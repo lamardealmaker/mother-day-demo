@@ -11,6 +11,7 @@ const client = new CartesiaClient({
 
 export async function POST(request: Request) {
   try {
+    console.log('Cloning voice');
     const formData = await request.formData();
     const audioBlob = formData.get('audio') as Blob;
     const name = formData.get('name') as string;

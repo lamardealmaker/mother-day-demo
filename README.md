@@ -1,8 +1,23 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+This is a small demo built with [Next.js](https://nextjs.org). It lets you clone a short voice sample, generate a Mother's Day poem, and schedule a phone call that reads the poem using your cloned voice.
 
 ## Getting Started
 
-First, run the development server:
+Install dependencies (requires Node 18+):
+
+```bash
+npm install
+```
+
+Create a `.env.local` file with the following variables:
+
+```bash
+OPENAI_API_KEY=your-openai-key
+CARTESIA_API_KEY=your-cartesia-key
+VAPI_API_KEY=your-vapi-key
+TWILIO_MOTHERS_DAY_NUMBERS=[{"id":"pn_xxxxx"}]
+```
+
+Then run the development server:
 
 ```bash
 npm run dev
@@ -16,9 +31,25 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the page by modifying files inside the `app/` directory. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Running Tests
+
+Simple unit tests are located in the `tests/` folder. Run them with:
+
+```bash
+npm test
+```
+
+## Voice Data
+
+Voice recordings are uploaded to Cartesia only for cloning. If you would like to remove the cloned voice, send a POST request to `/api/assistant/delete-voice` with the `voiceId` returned when cloning.
+
+## Customization
+
+When generating a poem you can choose a short or long length, edit the poem before continuing, and modify the first message that will be spoken during the call.
 
 ## Learn More
 

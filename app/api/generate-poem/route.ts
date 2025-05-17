@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
+import { validatePoemRequest } from '../../utils/validation.js';
 
 export async function POST(request: Request) {
   try {
-    const { question1, question2, question3, name } = await request.json();
-    if (!question1 || !question2 || !question3 || !name) {
+    const { question1, question2, question3, name, length } = await request.json();
+    console.log('Generating poem', { length });
+    if (!validatePoemRequest({ question1, question2, question3, name })) {
       return NextResponse.json({ error: 'All questions and name are required.' }, { status: 400 });
     }
+    const poemLength = length === 'long' ? 'a detailed' : 'a short';
 
-    const prompt = `Write a heartfelt, original poem for a mom based on the following answers from her child.\n\nChild's name: ${name}\n\nOne beautiful thing mom does: ${question1}\nFavourite memory: ${question2}\nFeeling most associated with mom: ${question3}\n\nPoem:\nDo not use asterisks in the title or anywhere in the poem.`;
+    const prompt = `Write ${poemLength}, heartfelt, original poem for a mom based on the following answers from her child.\n\nChild's name: ${name}\n\nOne beautiful thing mom does: ${question1}\nFavourite memory: ${question2}\nFeeling most associated with mom: ${question3}\n\nPoem:\nDo not use asterisks in the title or anywhere in the poem.`;
 
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -21,7 +24,7 @@ export async function POST(request: Request) {
           { role: 'system', content: 'You are a creative and loving poet.' },
           { role: 'user', content: prompt },
         ],
-        max_tokens: 400,
+        max_tokens: length === 'long' ? 400 : 200,
         temperature: 0.8,
       }),
     });
