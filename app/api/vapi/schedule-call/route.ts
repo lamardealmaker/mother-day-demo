@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { VapiClient } from "@vapi-ai/server-sdk";
+import { validatePhoneNumber } from '../../../utils/validation.js';
 
 const client = new VapiClient({ token: process.env.VAPI_API_KEY! });
 
@@ -17,6 +18,7 @@ function getNextTwilioNumberId() {
 
 export async function POST(request: Request) {
   try {
+    console.log('Scheduling call');
     const body = await request.json();
     
     const { cartesiaVoiceId, name, firstMessage, customer: customerNumber } = body;
@@ -29,8 +31,7 @@ export async function POST(request: Request) {
     }
 
     // Validate phone number format
-    const phoneRegex = /^\+[1-9]\d{1,14}$/;
-    if (!phoneRegex.test(customerNumber)) {
+    if (!validatePhoneNumber(customerNumber)) {
       return NextResponse.json(
         { error: 'Phone number must be in E.164 format (e.g., +1XXXXXXXXXX) with country code' },
         { status: 400 }

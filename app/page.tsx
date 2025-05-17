@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRecording } from './hooks/useRecording';
 import { MainContainer, BackgroundContainer, Title, Subtitle } from './components/StyledComponents';
 import { VoiceRecording, RecorderStatus } from './components/Record';
+import { Toast } from './components/Toast';
 import styled from 'styled-components';
 
 const FormContainer = styled.div`
@@ -197,6 +198,9 @@ export default function Home() {
   const [isMakingCall, setIsMakingCall] = useState(false);
   const [poemGenerated, setPoemGenerated] = useState(false);
   const [step, setStep] = useState(1);
+  const [poemLength, setPoemLength] = useState<'short' | 'long'>('short');
+  const [callMessage, setCallMessage] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const {
     isRecording,
@@ -272,6 +276,7 @@ export default function Home() {
           question2,
           question3,
           name: name || 'Your child',
+          length: poemLength,
         }),
       });
       const data = await response.json();
@@ -288,6 +293,8 @@ export default function Home() {
   };
 
   const handleContinue = () => {
+    const defaultMsg = `Hey Mom, this is [your name]. Happy Mother's Day! I love you so much and wrote this poem for you.\n\n${poem}\n\nHow is your day going so far?`;
+    setCallMessage(defaultMsg);
     setStep(3);
   };
 
@@ -304,13 +311,14 @@ export default function Home() {
         setError('Please enter a valid phone number in E.164 format (e.g., +14155552671) including the country code.');
         return;
       }
+      const defaultMsg = `Hey Mom, this is ${name}. Happy Mother's Day! I love you so much and wrote this poem for you.\n\n${poem}\n\nHow is your day going so far?`;
       const callRes = await fetch('/api/vapi/schedule-call', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cartesiaVoiceId: voiceId,
           name: name,
-          firstMessage: `Hey Mom, this is ${name}. Happy Mother's Day! I love you so much and wrote this poem for you.\n\n${poem}\n\nHow is your day going so far?`,
+          firstMessage: callMessage.trim() || defaultMsg,
           customer
         }),
       });
@@ -329,7 +337,7 @@ export default function Home() {
       setPoem('');
       setStep(1);
       setIsMakingCall(false);
-      alert('Message sent! The call will be made shortly.');
+      setToast({ message: 'Message sent! The call will be made shortly.', type: 'success' });
     } catch (err: any) {
       setError(err.message || 'Failed to send message');
       setIsMakingCall(false);
@@ -343,6 +351,7 @@ export default function Home() {
 
   return (
     <ResponsiveMainContainer>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <BackgroundContainer>
         <StyledTitle>Mother's Day Voice Agent</StyledTitle>
         <StyledSubtitle>Record your voice, clone it, answer a few questions. We'll write a poem, call your mom and deliver it in a natural conversation.</StyledSubtitle>
@@ -373,6 +382,7 @@ export default function Home() {
                   <div>
                     <StyledLabel>What's one beautiful thing your mom does?</StyledLabel>
                     <StyledTextarea
+                      aria-label="One beautiful thing"
                       value={question1}
                       onChange={(e) => setQuestion1(e.target.value)}
                       placeholder="Tells you how amazing you are everytime you call..."
@@ -382,6 +392,7 @@ export default function Home() {
                   <div>
                     <StyledLabel>What is your favrourite memory with your mom?</StyledLabel>
                     <StyledTextarea
+                      aria-label="Favourite memory"
                       value={question2}
                       onChange={(e) => setQuestion2(e.target.value)}
                       placeholder="Making you an amazing dinner whenever you visit..."
@@ -389,19 +400,32 @@ export default function Home() {
                     />
                   </div>
                   <div>
-                    <StyledLabel>What feeling do you associate most strongly with your mom?</StyledLabel>
-                    <StyledTextarea
+                  <StyledLabel>What feeling do you associate most strongly with your mom?</StyledLabel>
+                  <StyledTextarea
+                      aria-label="Associated feeling"
                       value={question3}
-                      onChange={(e) => setQuestion3(e.target.value)}
-                      placeholder="Warmth, love, incredible care and grounding..."
-                      style={{ marginBottom: '0.5rem' }}
-                    />
-                  </div>
-                  <StyledButton
-                    onClick={handleGeneratePoem}
-                    disabled={isGeneratingPoem}
-                    style={{ marginTop: '0.5rem' }}
+                    onChange={(e) => setQuestion3(e.target.value)}
+                    placeholder="Warmth, love, incredible care and grounding..."
+                    style={{ marginBottom: '0.5rem' }}
+                  />
+                </div>
+                <div>
+                  <StyledLabel htmlFor="poemLength">Poem Length</StyledLabel>
+                  <select
+                    id="poemLength"
+                    value={poemLength}
+                    onChange={(e) => setPoemLength(e.target.value as 'short' | 'long')}
+                    style={{ width: '100%', padding: '0.75rem', border: '1.5px solid #e9b7c3', borderRadius: '0.75rem' }}
                   >
+                    <option value="short">Short</option>
+                    <option value="long">Long</option>
+                  </select>
+                </div>
+                <StyledButton
+                  onClick={handleGeneratePoem}
+                  disabled={isGeneratingPoem}
+                  style={{ marginTop: '0.5rem' }}
+                >
                     {isGeneratingPoem ? 'Generating Poem...' : 'Generate Poem'}
                   </StyledButton>
                 </>
@@ -409,8 +433,13 @@ export default function Home() {
               {step === 2 && (
                 <>
                   <div style={{ marginTop: '1.5rem', background: '#f9f9fa', border: '1.5px solid #e9b7c3', borderRadius: '1rem', padding: '1.5rem' }}>
-                    <div style={{ fontWeight: 600, marginBottom: '0.7rem' }}>Generated Poem:</div>
-                    <div style={{ whiteSpace: 'pre-line', fontFamily: 'serif', fontSize: '1.1rem' }}>{poem}</div>
+                    <div style={{ fontWeight: 600, marginBottom: '0.7rem' }}>Generated Poem (edit if you like):</div>
+                    <textarea
+                      aria-label="Generated poem"
+                      style={{ width: '100%', minHeight: '12rem', fontSize: '1.1rem', fontFamily: 'serif', padding: '0.5rem', borderRadius: '0.5rem', border: '1px solid #e9b7c3' }}
+                      value={poem}
+                      onChange={(e) => setPoem(e.target.value)}
+                    />
                   </div>
                   <StyledButton
                     onClick={handleContinue}
@@ -426,6 +455,7 @@ export default function Home() {
                     <StyledLabel htmlFor="name">Your first name</StyledLabel>
                     <StyledInput
                       id="name"
+                      aria-label="Your first name"
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -433,11 +463,12 @@ export default function Home() {
                       autoComplete="name"
                     />
                   </div>
-                  <div>
-                    <StyledLabel htmlFor="customer">Mom's phone number (with country code)</StyledLabel>
-                    <StyledInput
-                      id="customer"
-                      type="tel"
+                <div>
+                  <StyledLabel htmlFor="customer">Mom's phone number (with country code)</StyledLabel>
+                  <StyledInput
+                    id="customer"
+                    aria-label="Mom's phone number"
+                    type="tel"
                       value={customer}
                       onChange={(e) => setCustomer(e.target.value)}
                       placeholder="+1XXXXXXXXXX"
@@ -445,15 +476,26 @@ export default function Home() {
                       pattern="^\+[1-9]\d{1,14}$"
                       title="Please enter a valid phone number with country code (e.g., +1XXXXXXXXXX)"
                     />
-                    <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.5rem' }}>
-                      Must include country code (e.g., +1 for US)
-                    </div>
+                  <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.5rem' }}>
+                    Must include country code (e.g., +1 for US)
                   </div>
-                  <StyledButton
-                    onClick={handlePlaceCall}
-                    disabled={isMakingCall}
-                    style={{ marginTop: '0.5rem' }}
-                  >
+                </div>
+                <div>
+                  <StyledLabel htmlFor="callMsg">First message when the call starts</StyledLabel>
+                  <StyledTextarea
+                    id="callMsg"
+                    aria-label="First message"
+                    value={callMessage}
+                    onChange={(e) => setCallMessage(e.target.value)}
+                    placeholder="Greeting and poem to read"
+                    style={{ marginBottom: '0.5rem' }}
+                  />
+                </div>
+                <StyledButton
+                  onClick={handlePlaceCall}
+                  disabled={isMakingCall}
+                  style={{ marginTop: '0.5rem' }}
+                >
                     {isMakingCall ? 'Calling...' : 'Place Call'}
                   </StyledButton>
                 </>
